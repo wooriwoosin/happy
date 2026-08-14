@@ -168,6 +168,11 @@ sidebar { background: var(--surface); border-right: 1px solid var(--border); dis
   </div>
 </div>
 <script>
+// ── 구글시트 연동 설정 ──
+// Apps Script 배포(웹앱) URL을 넣으면 시트와 자동 동기화됩니다.
+// 예: 'https://script.google.com/macros/s/AKfycb.../exec'
+const SHEET_API_URL = '';
+
 const CARRIERS = [
   {id:'KT',label:'KT 일반',tag:'KT',tagClass:'tag-kt'},
   {id:'KT_biz',label:'KT 기업',tag:'KT',tagClass:'tag-kt'},
@@ -216,6 +221,21 @@ function saveScripts() {
     google.script.run
       .withFailureHandler(e => console.warn('시트 저장 실패:', e))
       .saveScripts(JSON.stringify(SCRIPTS));
+  } else if (SHEET_API_URL) {
+    // Content-Type 지정 없이 문자열 body로 보내야 CORS preflight 없이 전송됨
+    setSyncStatus('시트 저장 중...', 'ing');
+    fetch(SHEET_API_URL, { method: 'POST', body: JSON.stringify(SCRIPTS) })
+      .then(r => r.json())
+      .then(res => {
+        if (res && res.ok) { setSyncStatus('✅ 시트 저장됨', 'ok'); }
+        else { setSyncStatus('⚠️ 시트 저장 실패', 'err'); console.warn('시트 저장 실패:', res && res.error); }
+        setTimeout(() => setSyncStatus('', ''), 3000);
+      })
+      .catch(e => {
+        setSyncStatus('⚠️ 시트 저장 실패', 'err');
+        console.warn('시트 저장 실패:', e);
+        setTimeout(() => setSyncStatus('', ''), 4000);
+      });
   }
 }
 
@@ -227,32 +247,45 @@ function setSyncStatus(msg, type) {
 }
 
 
+function applySheetData(data) {
+  if (data && data.length > 0) {
+    SCRIPTS = data;
+    try { localStorage.setItem('happycall_scripts_v4', JSON.stringify(data)); } catch(e) {}
+    mergeSeedScripts(true);
+    setSyncStatus('✅ ' + data.length + '개 로드됨', 'ok');
+    renderCarrierList();
+    if (currentCarrier) renderContent(currentCarrier);
+    setTimeout(() => setSyncStatus('', ''), 3000);
+  } else {
+    setSyncStatus('✅ 초기 데이터 로드됨', 'ok');
+    setTimeout(() => setSyncStatus('', ''), 3000);
+  }
+}
 function autoLoadIfUrlExists() {
-  if (typeof google === 'undefined' || !google.script) return;
+  if (typeof google !== 'undefined' && google.script) {
+    setSyncStatus('시트 로드 중...', 'ing');
+    google.script.run
+      .withSuccessHandler(function(jsonStr) {
+        try { applySheetData(JSON.parse(jsonStr)); }
+        catch(e) { setSyncStatus('⚠️ 로드 실패 (로컬 사용)', 'err'); setTimeout(()=>setSyncStatus('',''),4000); }
+      })
+      .withFailureHandler(function() {
+        setSyncStatus('⚠️ 시트 연결 실패 (로컬 사용)', 'err');
+        setTimeout(() => setSyncStatus('', ''), 4000);
+      })
+      .loadScripts();
+    return;
+  }
+  if (!SHEET_API_URL) return;
   setSyncStatus('시트 로드 중...', 'ing');
-  google.script.run
-    .withSuccessHandler(function(jsonStr) {
-      try {
-        const data = JSON.parse(jsonStr);
-        if (data && data.length > 0) {
-          SCRIPTS = data;
-          try { localStorage.setItem('happycall_scripts_v4', jsonStr); } catch(e) {}
-          mergeSeedScripts(true);
-          setSyncStatus('✅ ' + data.length + '개 로드됨', 'ok');
-          renderCarrierList();
-          if (currentCarrier) renderContent(currentCarrier);
-          setTimeout(() => setSyncStatus('', ''), 3000);
-        } else {
-          setSyncStatus('✅ 초기 데이터 로드됨', 'ok');
-          setTimeout(() => setSyncStatus('', ''), 3000);
-        }
-      } catch(e) { setSyncStatus('⚠️ 로드 실패 (로컬 사용)', 'err'); setTimeout(()=>setSyncStatus('',''),4000); }
-    })
-    .withFailureHandler(function() {
+  fetch(SHEET_API_URL)
+    .then(r => r.json())
+    .then(data => applySheetData(data))
+    .catch(function(e) {
+      console.warn('시트 로드 실패:', e);
       setSyncStatus('⚠️ 시트 연결 실패 (로컬 사용)', 'err');
       setTimeout(() => setSyncStatus('', ''), 4000);
-    })
-    .loadScripts();
+    });
 }
 
 // 코드에 내장된 기본 스크립트 - 기존 저장 데이터(시트/localStorage)에 없으면 자동 추가됨

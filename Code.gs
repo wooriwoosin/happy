@@ -1,20 +1,37 @@
 // ══════════════════════════════════════
-// 해피콜 스크립트 - Google Apps Script
+// 해피콜 스크립트 - Google Apps Script (데이터 API 전용)
 // ══════════════════════════════════════
+// 화면(HTML)은 GitHub Pages에서 서빙하고,
+// 이 스크립트는 구글시트 데이터를 읽고 쓰는 API 역할만 합니다.
+//
 // 설정: 시트 > 확장 프로그램 > Apps Script
-//  1. Code.gs 내용 교체
-//  2. + > HTML > 파일명: Index > Index.html 붙여넣기
-//  3. 배포 > 새 배포 > 웹앱 > 실행계정:나 > 액세스:모든사용자
+//  1. Code.gs 내용을 이 파일로 교체 (Index.html 파일은 삭제해도 됨)
+//  2. 배포 > 새 배포 > 웹앱 > 실행계정:나 > 액세스:모든사용자
+//  3. 배포된 웹앱 URL을 index.html의 SHEET_API_URL에 붙여넣기
+//  ※ 재배포시 "배포 관리 > 버전 업데이트"를 쓰면 URL이 유지됩니다
 // ══════════════════════════════════════
 
 const SHEET_NAME = '스크립트';
 
+// GET: 전체 스크립트 데이터를 JSON으로 반환 (GitHub Pages HTML이 불러갈 때 사용)
 function doGet() {
-  return HtmlService
-    .createHtmlOutputFromFile('Index')
-    .setTitle('해피콜 스크립트')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1.0');
+  return ContentService
+    .createTextOutput(loadScripts())
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// POST: 전체 스크립트 데이터를 받아 시트에 저장
+function doPost(e) {
+  try {
+    saveScripts(e.postData.contents);
+    return ContentService
+      .createTextOutput(JSON.stringify({ok: true}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ok: false, error: String(err)}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
 function loadScripts() {

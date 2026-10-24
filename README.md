@@ -3,34 +3,53 @@
 해피콜 스크립트 웹앱입니다.
 
 - **화면(HTML)**: 이 저장소의 `index.html` → GitHub Pages(`https://wooriwoosin.github.io/happy`)에서 서빙
-- **데이터**: 구글 시트의 `스크립트` 탭에 저장, Apps Script(`Code.gs`)가 데이터 API 역할
+- **데이터**: Supabase(수파베이스) `scripts` 테이블에 저장
 
 ```
-[GitHub Pages: index.html] ←fetch(JSON)→ [Apps Script: Code.gs] ←→ [구글 시트: 스크립트 탭]
+[GitHub Pages: index.html] ←fetch(REST)→ [Supabase: scripts 테이블]
 ```
 
 ## 파일 구성
 
 | 파일 | 설명 |
 |------|------|
-| `Code.gs` | Apps Script 데이터 API (doGet: 불러오기 / doPost: 저장) |
 | `index.html` | 웹앱 UI (HTML/CSS/JS 단일 파일) — GitHub Pages에서 서빙 |
+| `supabase_setup.sql` | Supabase 테이블 생성 SQL (최초 1회 실행) |
+| `Code.gs` | (구) 구글시트 Apps Script API — 데이터 이전 완료 후에는 불필요 |
 
 ## 최초 설정 (한 번만)
 
-1. 구글 시트 > 확장 프로그램 > Apps Script 열기
-2. `Code.gs` 내용을 이 저장소의 `Code.gs`로 교체 (기존 `Index` HTML 파일은 삭제해도 됨)
-3. 배포 > 새 배포 > 웹앱 > 실행계정: **나** / 액세스: **모든 사용자** → 웹앱 URL 복사
-4. 이 저장소 `index.html` 상단의 `SHEET_API_URL = ''` 에 복사한 URL 붙여넣기
+1. [supabase.com](https://supabase.com) 가입 → **New project** 생성
+   (Region은 Northeast Asia (Seoul) 권장)
+2. 좌측 메뉴 **SQL Editor** > New query → `supabase_setup.sql` 내용 붙여넣고 **Run**
+3. 좌측 메뉴 **Project Settings > API** 에서 두 값 복사:
+   - **Project URL** (예: `https://xxxx.supabase.co`)
+   - **anon public** 키
+4. `index.html` 상단의 `SUPABASE_URL`, `SUPABASE_ANON_KEY` 에 붙여넣기
+
+## 데이터 자동 이전
+
+Supabase 테이블이 비어있는 상태로 페이지에 접속하면, 기존 구글시트
+(`LEGACY_SHEET_API_URL`)에서 전체 데이터를 읽어와 자동으로 Supabase에
+넣습니다. 상단에 "✅ 이전 완료: NNN개"가 표시되면 끝난 것이며,
+이후에는 Supabase가 유일한 저장소가 됩니다.
 
 ## 수정 반영 방법
 
-- **HTML(화면/스크립트 내용) 수정**: 이 저장소에서 `index.html` 수정 → GitHub Pages에 자동 반영 (1~2분)
-- **시트에서 데이터 수정**: 구글 시트 `스크립트` 탭에서 직접 수정 → 페이지 새로고침하면 반영
-- **Code.gs 수정**: Apps Script에 붙여넣고 배포 관리 > **버전 업데이트** (새 배포를 만들면 URL이 바뀌므로 주의)
+- **화면/기능 수정**: 이 저장소에서 `index.html` 수정 → GitHub Pages에 자동 반영 (1~2분)
+- **스크립트 내용 수정**: 웹앱 수정모드에서 편집 → Supabase에 자동 저장
+- **데이터 직접 보기/수정**: Supabase 대시보드 > Table Editor > `scripts`
 
-## 데이터
+## 테이블 구조 (`scripts`)
 
-- 스크립트 데이터는 구글 시트의 `스크립트` 시트에 저장됩니다.
-- 열 구성: ID, 통신사, 섹션, 서브섹션, 명의자유형, 순서, CCTV유형, 스크립트, 비고
-- 웹앱 수정모드에서 편집하면 시트에 자동 저장되고, 시트에서 고치면 새로고침 시 웹앱에 반영됩니다.
+| 열 | 설명 |
+|----|------|
+| `id` | 고유 ID (예: kt001, partner001) |
+| `carrier` | 통신사/카테고리 (KT, LG, SK, PARTNER 등) |
+| `section` | 섹션 |
+| `subsection` | 서브섹션 |
+| `owner_types` | 명의자유형 (`all` 또는 쉼표 구분) |
+| `sort_order` | 정렬 순서 |
+| `cctv_type` | CCTV 유형 |
+| `script` | 스크립트 본문 |
+| `note` | 비고 |

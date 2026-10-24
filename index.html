@@ -305,9 +305,11 @@ function setSyncStatus(msg, type) {
 function applyDbData(items) {
   dbLoadedOk = true;
   SCRIPTS = items;
-  saveScripts();
   const added = mergeSeedScripts();
-  if (added.length) dbUpsert(added).catch(e => console.warn('시드 저장 실패:', e));
+  const revised = applySeedRevisions();
+  saveScripts();
+  const toSave = added.concat(revised);
+  if (toSave.length) dbUpsert(toSave).catch(e => console.warn('시드 저장 실패:', e));
   setSyncStatus('✅ ' + SCRIPTS.length + '개 로드됨', 'ok');
   renderCarrierList();
   if (currentCarrier) renderContent(currentCarrier);
@@ -318,6 +320,7 @@ function migrateFromLegacy() {
   const finish = function(items, label) {
     SCRIPTS = items;
     mergeSeedScripts();
+    applySeedRevisions();
     setSyncStatus(label + ' → DB 이전 중...', 'ing');
     dbUpsert(SCRIPTS)
       .then(function() {
@@ -393,13 +396,34 @@ const SEED_SCRIPTS = [
   {id:'partner010',carrier:'PARTNER',section:'부재시 문자발송',subsection:'SK',ownerTypes:'all',order:10,cctvType:null,
    script:'안녕하세요. SK 인터넷 접수해드린 센터입니다.\n가입내용 확인 차 연락 드렸으나 통화 어려워 문자 남겨드립니다.\n아래 가입내역과 안내받은 내용이 다르시다면 개통받지 마시고 취소요청 해주시거나\n이미 개통 받으셨다면 고객센터(114번)으로 연락 부탁드립니다.\n\nOOO님 명의로 25년 O월 O일 SK 인터넷+TV 36개월 약정으로 접수 또는 개통 되셨으며\n월요금 OO,OOO원, 실사용일수 9개월이내 상품변경/해지/기타 본사 할인프로그램등록시\n사은품 반환 됩니다.\n3년약정내 상품 해지시 위약금 청구되며, 기존에 이용하시던 인터넷/TV상품등은\n직접 해지해주셔야 합니다.\n\n☆☆더불어☆☆\n기존통신사에 대한 위약금 대납, 대리해지 , 몇달뒤에 나머지 사은품 주겠다, 다른업체보다 과도한 사은품 안내 등은 불법 영업일 가능성이 높습니다.\n불법영업에 의한 피해구제는 불가능 하오니 한가지라도 해당 사항이 있을경우 고객센터(114) 으로 문의주시기 바랍니다.',note:null},
   {id:'rental001',carrier:'RENTAL',section:'녹취통보',subsection:null,ownerTypes:'all',order:1,cctvType:null,
-   script:'안녕하세요 렌탈 접수 받은곳인데요 계약내용에 대한 해피콜 안내 진행하겠습니다.',note:null},
+   script:'안녕하세요 (렌탈사)-(렌탈상품) 렌탈 접수 받은곳인데요 계약내용에 대한 해피콜 안내 진행하겠습니다.\n(예시: "안녕하세요 SK매직-정수기 렌탈 접수 받은곳인데요~")',
+   note:'렌탈사: SK매직 / 코웨이 / 쿠쿠 등\n렌탈상품: 정수기 / 비데 / 안마의자 등\n접수 건에 맞게 (렌탈사)-(렌탈상품) 부분을 바꿔서 안내'},
   {id:'rental002',carrier:'RENTAL',section:'기본정보',subsection:'일반',ownerTypes:['일반'],order:2,cctvType:null,
    script:'XXX님, 명의자 본인 되시구요? (네)\n실명확인차 주민번호 앞자리 6자리 확인 부탁드립니다 (고객님이 불러주셔야됨)',note:null},
   {id:'rental003',carrier:'RENTAL',section:'상품공통',subsection:'공통',ownerTypes:'all',order:3,cctvType:null,
-   script:'렌탈 상품의 요금 및 약정 안내는 가입하실때 해피콜 진행과 계약서로 확인 부탁드리구요.\n약정기간 내 해지 시 렌탈사 위약금이 청구되시며,\n렌탈사 위약금과는 별개로 1년 이내 해지,미납으로인한정지,연체,일시정지시 저희가 지급해드린 사은품은 환수되시니 유의 부탁드립니다.',
-   note:'사은품 환수 기준 "1년"은 렌탈사별 환수기준 확인 후 확정 필요'},
+   script:'(렌탈사)-(렌탈상품) 상품의 요금 및 약정 안내는 가입하실때 해피콜 진행과 계약서로 확인 부탁드리구요.\n약정기간 내 해지 시 렌탈사 위약금이 청구되시며,\n렌탈사 위약금과는 별개로 1년 이내 해지,미납으로인한정지,연체,일시정지시 저희가 지급해드린 사은품은 환수되시니 유의 부탁드립니다.',
+   note:'사은품 환수 기준 "1년"은 렌탈사별 환수기준 확인 후 확정 필요\n접수 건에 맞게 (렌탈사)-(렌탈상품) 부분을 바꿔서 안내'},
 ];
+
+// 시드 문구 개정 이력: DB에 저장된 문구가 "이전 시드 원문과 완전히 동일"할 때만
+// (= 담당자가 수정모드에서 손대지 않은 경우만) 위의 새 시드 문구로 교체
+const SEED_OLD_TEXTS = {
+  rental001: '안녕하세요 렌탈 접수 받은곳인데요 계약내용에 대한 해피콜 안내 진행하겠습니다.',
+  rental003: '렌탈 상품의 요금 및 약정 안내는 가입하실때 해피콜 진행과 계약서로 확인 부탁드리구요.\n약정기간 내 해지 시 렌탈사 위약금이 청구되시며,\n렌탈사 위약금과는 별개로 1년 이내 해지,미납으로인한정지,연체,일시정지시 저희가 지급해드린 사은품은 환수되시니 유의 부탁드립니다.'
+};
+function applySeedRevisions() {
+  const changed = [];
+  Object.keys(SEED_OLD_TEXTS).forEach(function(id) {
+    const item = SCRIPTS.find(s => s.id === id);
+    const seed = SEED_SCRIPTS.find(s => s.id === id);
+    if (item && seed && item.script === SEED_OLD_TEXTS[id] && item.script !== seed.script) {
+      item.script = seed.script;
+      item.note = seed.note;
+      changed.push(item);
+    }
+  });
+  return changed;
+}
 
 // 현재 SCRIPTS에 없는 시드 항목을 추가하고, 추가된 항목 배열을 반환
 function mergeSeedScripts() {

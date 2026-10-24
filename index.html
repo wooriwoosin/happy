@@ -172,8 +172,8 @@ sidebar { background: var(--surface); border-right: 1px solid var(--border); dis
 // 수파베이스 프로젝트 생성 후 아래 두 값을 채우면 DB와 자동 동기화됩니다.
 // SUPABASE_URL: 프로젝트 설정 > API > Project URL (예: 'https://xxxx.supabase.co')
 // SUPABASE_ANON_KEY: 프로젝트 설정 > API > anon public 키
-const SUPABASE_URL = '';
-const SUPABASE_ANON_KEY = '';
+const SUPABASE_URL = 'https://iwfiilgjiqkdsuybqwwk.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_q3SLb7fToGXt9J4o7tkYOw_QArw7mQ9';
 // 이전 백엔드(구글시트 Apps Script). 수파베이스 테이블이 비어있으면
 // 첫 접속 때 여기서 데이터를 읽어와 자동으로 이전합니다. 이전 완료 후엔 비워도 됨.
 const LEGACY_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwpsmUuyCoEALVf4Zct3odrfhZJvz6EUhcNhhAphRfYhrwoedtj_o2PMeX9iTKmNs7-Ug/exec';
@@ -227,11 +227,11 @@ function saveScripts() {
 // ── Supabase REST 헬퍼 ──
 function dbReady() { return !!(SUPABASE_URL && SUPABASE_ANON_KEY); }
 function dbHeaders(extra) {
-  return Object.assign({
-    'apikey': SUPABASE_ANON_KEY,
-    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-    'Content-Type': 'application/json'
-  }, extra || {});
+  const h = { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' };
+  // 구형 anon 키(JWT, eyJ로 시작)일 때만 Authorization 헤더 추가
+  // 신형 sb_publishable_ 키는 apikey 헤더만으로 동작
+  if (SUPABASE_ANON_KEY.indexOf('eyJ') === 0) h['Authorization'] = 'Bearer ' + SUPABASE_ANON_KEY;
+  return Object.assign(h, extra || {});
 }
 function parseOwnerTypes(v) {
   if (!v || v === 'all') return 'all';

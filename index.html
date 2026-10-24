@@ -193,6 +193,7 @@ const CARRIERS = [
   {id:'PARTNER',label:'협력점 해피콜(불법영업,유심아웃)',tag:'협력점',tagClass:'tag-other'},
   {id:'CCTV',label:'CCTV',tag:'공통',tagClass:'tag-other'},
   {id:'MULTI',label:'다회선',tag:'공통',tagClass:'tag-other'},
+  {id:'RENTAL',label:'렌탈',tag:'공통',tagClass:'tag-other'},
   {id:'MOB_유심',label:'유심',tag:'MOB',tagClass:'tag-mobile'},
   {id:'MOB_선택약정',label:'선택약정',tag:'MOB',tagClass:'tag-mobile'},
   {id:'MOB_공시지원금',label:'공시지원금',tag:'MOB',tagClass:'tag-mobile'},
@@ -391,6 +392,13 @@ const SEED_SCRIPTS = [
    script:'안녕하세요. KT 인터넷 접수해드린 센터입니다.\n가입내용 확인 차 연락 드렸으나 통화 어려워 문자 남겨드립니다.\n아래 가입내역과 안내받은 내용이 다르시다면 개통받지 마시고 취소요청 해주시거나\n이미 개통 받으셨다면 고객센터(100번)으로 연락 부탁드립니다.\n\nOOO님 명의로 25년 O월 O일 KT 인터넷+TV 36개월 약정으로 접수 또는 개통 되셨으며\n월요금 OO,OOO원, 실사용일수 9개월이내 상품변경/해지/기타 본사 할인프로그램등록시\n사은품 반환 됩니다.\n3년약정내 상품 해지시 위약금 청구되며, 기존에 이용하시던 인터넷/TV상품등은\n직접 해지해주셔야 합니다.\n\n☆☆더불어☆☆\n기존통신사에 대한 위약금 대납, 대리해지 , 몇달뒤에 나머지 사은품 주겠다, 다른업체보다 과도한 사은품 안내 등은 불법 영업일 가능성이 높습니다.\n불법영업에 의한 피해구제는 불가능 하오니 한가지라도 해당 사항이 있을경우 고객센터(100번) 으로 문의주시기 바랍니다.',note:null},
   {id:'partner010',carrier:'PARTNER',section:'부재시 문자발송',subsection:'SK',ownerTypes:'all',order:10,cctvType:null,
    script:'안녕하세요. SK 인터넷 접수해드린 센터입니다.\n가입내용 확인 차 연락 드렸으나 통화 어려워 문자 남겨드립니다.\n아래 가입내역과 안내받은 내용이 다르시다면 개통받지 마시고 취소요청 해주시거나\n이미 개통 받으셨다면 고객센터(114번)으로 연락 부탁드립니다.\n\nOOO님 명의로 25년 O월 O일 SK 인터넷+TV 36개월 약정으로 접수 또는 개통 되셨으며\n월요금 OO,OOO원, 실사용일수 9개월이내 상품변경/해지/기타 본사 할인프로그램등록시\n사은품 반환 됩니다.\n3년약정내 상품 해지시 위약금 청구되며, 기존에 이용하시던 인터넷/TV상품등은\n직접 해지해주셔야 합니다.\n\n☆☆더불어☆☆\n기존통신사에 대한 위약금 대납, 대리해지 , 몇달뒤에 나머지 사은품 주겠다, 다른업체보다 과도한 사은품 안내 등은 불법 영업일 가능성이 높습니다.\n불법영업에 의한 피해구제는 불가능 하오니 한가지라도 해당 사항이 있을경우 고객센터(114) 으로 문의주시기 바랍니다.',note:null},
+  {id:'rental001',carrier:'RENTAL',section:'녹취통보',subsection:null,ownerTypes:'all',order:1,cctvType:null,
+   script:'안녕하세요 렌탈 접수 받은곳인데요 계약내용에 대한 해피콜 안내 진행하겠습니다.',note:null},
+  {id:'rental002',carrier:'RENTAL',section:'기본정보',subsection:'일반',ownerTypes:['일반'],order:2,cctvType:null,
+   script:'XXX님, 명의자 본인 되시구요? (네)\n실명확인차 주민번호 앞자리 6자리 확인 부탁드립니다 (고객님이 불러주셔야됨)',note:null},
+  {id:'rental003',carrier:'RENTAL',section:'상품공통',subsection:'공통',ownerTypes:'all',order:3,cctvType:null,
+   script:'렌탈 상품의 요금 및 약정 안내는 가입하실때 해피콜 진행과 계약서로 확인 부탁드리구요.\n약정기간 내 해지 시 렌탈사 위약금이 청구되시며,\n렌탈사 위약금과는 별개로 1년 이내 해지,미납으로인한정지,연체,일시정지시 저희가 지급해드린 사은품은 환수되시니 유의 부탁드립니다.',
+   note:'사은품 환수 기준 "1년"은 렌탈사별 환수기준 확인 후 확정 필요'},
 ];
 
 // 현재 SCRIPTS에 없는 시드 항목을 추가하고, 추가된 항목 배열을 반환
@@ -455,7 +463,7 @@ function renderCarrierList() {
     {label:'LG U+', ids:['LG','LG_biz']},
     {label:'SK', ids:['SK','SK_biz']},
     {label:'기타', ids:['HV','TB','SKY','WISELY','PARTNER']},
-    {label:'특수', ids:['CCTV','MULTI']},
+    {label:'특수', ids:['CCTV','MULTI','RENTAL']},
     {label:'모바일', ids:['MOB_유심','MOB_선택약정','MOB_공시지원금']},
   ];
   const el = document.getElementById('carrierList');
